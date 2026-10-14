@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f5f5f3" />
+  <title>Architecture Portfolio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="viewer-shell">
+    <header class="topbar">
+      <div class="title">PORTFOLIO</div>
+      <div class="actions">
+        <button id="zoom-out" aria-label="Zoom out">−</button>
+        <span id="zoom-label">100%</span>
+        <button id="zoom-in" aria-label="Zoom in">+</button>
+        <a class="download" href="portfolio.pdf" download>PDF</a>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="Portfolio viewer">
+      <button class="nav prev" id="prev" aria-label="Previous spread">‹</button>
+
+      <div id="page-wrap">
+        <canvas id="pdf-canvas"></canvas>
+        <div id="link-layer" aria-hidden="false"></div>
+      </div>
+
+      <button class="nav next" id="next" aria-label="Next spread">›</button>
+    </section>
+
+    <footer class="footer">
+      <span id="page-status">1 / 1</span>
+    </footer>
+  </main>
+
+  <script type="module" src="viewer.js"></script>
+</body>
+</html>

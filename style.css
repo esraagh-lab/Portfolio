@@ -1,0 +1,152 @@
+* { box-sizing: border-box; }
+
+:root {
+  --bg: #f5f5f3;
+  --ink: #1f1f1f;
+  --muted: #777;
+  --line: #d9d9d5;
+}
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body { overflow-x: hidden; }
+
+#viewer-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 58px 1fr 42px;
+}
+
+.topbar,
+.footer {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.topbar {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.title {
+  font-size: 12px;
+  letter-spacing: .14em;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.actions button,
+.download {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 7px 9px;
+}
+
+.actions button:hover,
+.download:hover { opacity: .55; }
+
+#zoom-label {
+  min-width: 42px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 72px 18px;
+  overflow: auto;
+}
+
+#page-wrap {
+  position: relative;
+  line-height: 0;
+  margin: auto;
+}
+
+#pdf-canvas {
+  display: block;
+  max-width: none;
+  background: white;
+  box-shadow: 0 1px 8px rgba(0,0,0,.06);
+}
+
+#link-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#link-layer a {
+  position: absolute;
+  display: block;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 70px;
+  border: 0;
+  background: transparent;
+  color: #555;
+  font-size: 42px;
+  font-weight: 200;
+  cursor: pointer;
+  z-index: 20;
+  opacity: .55;
+}
+
+.nav:hover { opacity: 1; }
+.prev { left: 14px; }
+.next { right: 14px; }
+
+.nav:disabled {
+  opacity: .12;
+  cursor: default;
+}
+
+.footer {
+  justify-content: center;
+  color: var(--muted);
+  font-size: 11px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 760px) {
+  #viewer-shell { grid-template-rows: 50px 1fr 36px; }
+  .topbar { padding: 0 12px; }
+  .stage { padding: 14px 10px 10px; }
+
+  .nav {
+    width: 34px;
+    height: 56px;
+    font-size: 34px;
+    background: rgba(245,245,243,.75);
+  }
+
+  .prev { left: 0; }
+  .next { right: 0; }
+  .download { display: none; }
+}
