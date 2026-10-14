@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f5f5f3" />
+  <meta name="theme-color" content="#f4f4f2" />
   <title>Architecture Portfolio</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -22,16 +22,24 @@
     <section class="stage" aria-label="Portfolio viewer">
       <button class="nav prev" id="prev" aria-label="Previous spread">‹</button>
 
-      <div id="page-wrap">
-        <canvas id="pdf-canvas"></canvas>
-        <div id="link-layer" aria-hidden="false"></div>
+      <div id="spread-wrap" aria-live="polite">
+        <div class="page-slot" id="left-slot">
+          <canvas id="left-canvas"></canvas>
+          <div class="link-layer" id="left-links"></div>
+        </div>
+        <div class="page-slot" id="right-slot">
+          <canvas id="right-canvas"></canvas>
+          <div class="link-layer" id="right-links"></div>
+        </div>
       </div>
+
+      <div id="error-box" hidden></div>
 
       <button class="nav next" id="next" aria-label="Next spread">›</button>
     </section>
 
     <footer class="footer">
-      <span id="page-status">1 / 1</span>
+      <span id="page-status">Loading…</span>
     </footer>
   </main>
 

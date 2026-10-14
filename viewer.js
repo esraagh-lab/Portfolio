@@ -1,14 +1,17 @@
-import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/build/pdf.min.mjs';
+import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/build/pdf.worker.min.mjs';
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 
-const PDF_URL = 'portfolio.pdf';
+const PDF_URL = './portfolio.pdf';
 
-const canvas = document.getElementById('pdf-canvas');
-const ctx = canvas.getContext('2d', { alpha: false });
-const pageWrap = document.getElementById('page-wrap');
-const linkLayer = document.getElementById('link-layer');
+const spreadWrap = document.getElementById('spread-wrap');
+const leftSlot = document.getElementById('left-slot');
+const rightSlot = document.getElementById('right-slot');
+const leftCanvas = document.getElementById('left-canvas');
+const rightCanvas = document.getElementById('right-canvas');
+const leftLinks = document.getElementById('left-links');
+const rightLinks = document.getElementById('right-links');
 
 const prevBtn = document.getElementById('prev');
 const nextBtn = document.getElementById('next');
@@ -17,77 +20,123 @@ const zoomOutBtn = document.getElementById('zoom-out');
 const zoomLabel = document.getElementById('zoom-label');
 const status = document.getElementById('page-status');
 const stage = document.querySelector('.stage');
+const errorBox = document.getElementById('error-box');
 
 let pdfDoc = null;
-let pageNum = 1;
+let spreadIndex = 0; // 0 = cover, 1 = pages 2-3, 2 = pages 4-5, ...
 let userZoom = 1;
-let renderToken = 0;
+let renderId = 0;
+
+function isMobile() {
+  return window.innerWidth <= 760;
+}
+
+function spreadPages() {
+  if (isMobile()) {
+    return [Math.min(spreadIndex + 1, pdfDoc.numPages), null];
+  }
+
+  if (spreadIndex === 0) return [1, null];
+
+  const left = spreadIndex * 2;
+  const right = left + 1;
+  return [left <= pdfDoc.numPages ? left : null,
+          right <= pdfDoc.numPages ? right : null];
+}
+
+function maxSpreadIndex() {
+  if (isMobile()) return pdfDoc ? pdfDoc.numPages - 1 : 0;
+  return pdfDoc ? Math.ceil((pdfDoc.numPages - 1) / 2) : 0;
+}
 
 function availableWidth() {
-  const mobile = window.innerWidth <= 760;
-  const sidePadding = mobile ? 20 : 160;
-  return Math.max(280, window.innerWidth - sidePadding);
+  return Math.max(300, window.innerWidth - (isMobile() ? 28 : 170));
 }
 
 function availableHeight() {
-  const topBottom = window.innerWidth <= 760 ? 100 : 145;
-  return Math.max(250, window.innerHeight - topBottom);
+  return Math.max(300, window.innerHeight - (isMobile() ? 105 : 135));
 }
 
-async function renderPage() {
-  if (!pdfDoc) return;
+async function preparePage(pageNumber) {
+  if (!pageNumber) return null;
+  const page = await pdfDoc.getPage(pageNumber);
+  const unit = page.getViewport({ scale: 1 });
+  return { pageNumber, page, unit };
+}
 
-  const token = ++renderToken;
-  const page = await pdfDoc.getPage(pageNum);
-  const baseViewport = page.getViewport({ scale: 1 });
+function fitScale(items) {
+  const live = items.filter(Boolean);
+  if (!live.length) return 1;
 
-  const fitScale = Math.min(
-    availableWidth() / baseViewport.width,
-    availableHeight() / baseViewport.height
+  if (isMobile()) {
+    const p = live[0].unit;
+    return Math.min(availableWidth() / p.width, availableHeight() / p.height);
+  }
+
+  const gap = live.length === 2 ? 10 : 0;
+  const totalWidth = live.reduce((sum, x) => sum + x.unit.width, 0) + gap;
+  const maxHeight = Math.max(...live.map(x => x.unit.height));
+
+  return Math.min(
+    availableWidth() / totalWidth,
+    availableHeight() / maxHeight
   );
+}
 
-  const cssScale = fitScale * userZoom;
-  const viewport = page.getViewport({ scale: cssScale });
+async function renderInto(item, canvas, slot, links, scale) {
+  if (!item) {
+    slot.classList.add('hidden');
+    canvas.width = 1;
+    canvas.height = 1;
+    links.innerHTML = '';
+    return;
+  }
 
+  slot.classList.remove('hidden');
+
+  const viewport = item.page.getViewport({ scale });
   const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.floor(viewport.width * outputScale);
-  canvas.height = Math.floor(viewport.height * outputScale);
+
+  canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
+  canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
   canvas.style.width = `${viewport.width}px`;
   canvas.style.height = `${viewport.height}px`;
 
-  pageWrap.style.width = `${viewport.width}px`;
-  pageWrap.style.height = `${viewport.height}px`;
-  linkLayer.style.width = `${viewport.width}px`;
-  linkLayer.style.height = `${viewport.height}px`;
+  slot.style.width = `${viewport.width}px`;
+  slot.style.height = `${viewport.height}px`;
+  links.style.width = `${viewport.width}px`;
+  links.style.height = `${viewport.height}px`;
+
+  const ctx = canvas.getContext('2d', { alpha: false });
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
 
   const transform = outputScale !== 1
     ? [outputScale, 0, 0, outputScale, 0, 0]
     : null;
 
-  await page.render({
+  await item.page.render({
     canvasContext: ctx,
     transform,
     viewport,
     background: '#ffffff'
   }).promise;
 
-  if (token !== renderToken) return;
-
-  // Keep URL links from the PDF clickable, including Vimeo links.
-  linkLayer.innerHTML = '';
-  const annotations = await page.getAnnotations({ intent: 'display' });
+  links.innerHTML = '';
+  const annotations = await item.page.getAnnotations({ intent: 'display' });
 
   for (const ann of annotations) {
     if (ann.subtype !== 'Link' || !ann.rect) continue;
+    const href = ann.url || ann.unsafeUrl;
+    if (!href) continue;
 
     const rect = viewport.convertToViewportRectangle(ann.rect);
     const left = Math.min(rect[0], rect[2]);
     const top = Math.min(rect[1], rect[3]);
     const width = Math.abs(rect[2] - rect[0]);
     const height = Math.abs(rect[3] - rect[1]);
-
-    const href = ann.url || ann.unsafeUrl;
-    if (!href) continue;
 
     const a = document.createElement('a');
     a.href = href;
@@ -98,48 +147,107 @@ async function renderPage() {
     a.style.width = `${width}px`;
     a.style.height = `${height}px`;
     a.setAttribute('aria-label', 'Open link');
-    linkLayer.appendChild(a);
+    links.appendChild(a);
+  }
+}
+
+async function renderSpread() {
+  if (!pdfDoc) return;
+
+  const myId = ++renderId;
+  errorBox.hidden = true;
+  spreadWrap.style.display = 'flex';
+
+  const [leftNum, rightNum] = spreadPages();
+  const [left, right] = await Promise.all([
+    preparePage(leftNum),
+    preparePage(rightNum)
+  ]);
+
+  if (myId !== renderId) return;
+
+  const scale = fitScale([left, right]) * userZoom;
+
+  await Promise.all([
+    renderInto(left, leftCanvas, leftSlot, leftLinks, scale),
+    renderInto(right, rightCanvas, rightSlot, rightLinks, scale)
+  ]);
+
+  if (myId !== renderId) return;
+
+  if (isMobile()) {
+    status.textContent = `${leftNum} / ${pdfDoc.numPages}`;
+  } else if (rightNum) {
+    status.textContent = `${leftNum}–${rightNum} / ${pdfDoc.numPages}`;
+  } else {
+    status.textContent = `${leftNum} / ${pdfDoc.numPages}`;
   }
 
-  status.textContent = `${pageNum} / ${pdfDoc.numPages}`;
-  prevBtn.disabled = pageNum <= 1;
-  nextBtn.disabled = pageNum >= pdfDoc.numPages;
+  prevBtn.disabled = spreadIndex <= 0;
+  nextBtn.disabled = spreadIndex >= maxSpreadIndex();
   zoomLabel.textContent = `${Math.round(userZoom * 100)}%`;
 
-  stage.scrollLeft = Math.max(0, (pageWrap.offsetWidth - stage.clientWidth) / 2);
-  stage.scrollTop = 0;
+  requestAnimationFrame(() => {
+    stage.scrollLeft = Math.max(0, (spreadWrap.scrollWidth - stage.clientWidth) / 2);
+    stage.scrollTop = 0;
+  });
 }
 
-function changePage(delta) {
-  const next = pageNum + delta;
-  if (!pdfDoc || next < 1 || next > pdfDoc.numPages) return;
-  pageNum = next;
-  renderPage();
+function changeSpread(delta) {
+  const next = Math.max(0, Math.min(maxSpreadIndex(), spreadIndex + delta));
+  if (next === spreadIndex) return;
+  spreadIndex = next;
+  renderSpread();
 }
 
-prevBtn.addEventListener('click', () => changePage(-1));
-nextBtn.addEventListener('click', () => changePage(1));
+prevBtn.addEventListener('click', () => changeSpread(-1));
+nextBtn.addEventListener('click', () => changeSpread(1));
 
 zoomInBtn.addEventListener('click', () => {
-  userZoom = Math.min(2, userZoom + 0.1);
-  renderPage();
+  userZoom = Math.min(1.8, +(userZoom + 0.1).toFixed(1));
+  renderSpread();
 });
 
 zoomOutBtn.addEventListener('click', () => {
-  userZoom = Math.max(0.6, userZoom - 0.1);
-  renderPage();
+  userZoom = Math.max(0.6, +(userZoom - 0.1).toFixed(1));
+  renderSpread();
 });
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft') changePage(-1);
-  if (e.key === 'ArrowRight') changePage(1);
+  if (e.key === 'ArrowLeft') changeSpread(-1);
+  if (e.key === 'ArrowRight') changeSpread(1);
 });
 
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(renderPage, 120);
+  resizeTimer = setTimeout(() => {
+    // Keep position sensible when switching desktop/mobile.
+    spreadIndex = Math.min(spreadIndex, maxSpreadIndex());
+    renderSpread();
+  }, 150);
 });
 
-pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-await renderPage();
+async function start() {
+  try {
+    status.textContent = 'Loading portfolio…';
+
+    pdfDoc = await pdfjsLib.getDocument({
+      url: PDF_URL,
+      cMapPacked: true
+    }).promise;
+
+    await renderSpread();
+  } catch (err) {
+    console.error(err);
+    spreadWrap.style.display = 'none';
+    errorBox.hidden = false;
+    errorBox.innerHTML =
+      '<strong>The portfolio could not be loaded.</strong><br><br>' +
+      'Please refresh the page. If the problem remains, make sure ' +
+      '<code>portfolio.pdf</code> is in the same folder as <code>index.html</code>.';
+    status.textContent = 'Error';
+  }
+}
+
+start();
