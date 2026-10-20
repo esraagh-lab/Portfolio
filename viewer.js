@@ -57,7 +57,7 @@ async function show(target,animate=true){
   if(animate&&target!==oldIndex&&oldPages.length&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
    const direction=target>oldIndex?1:-1;
    if(!small&&oldPages.length===2&&pages.length===2&&Math.abs(target-oldIndex)===1)await turn(oldPages,pages,direction);
-   else await spread.animate([{transform:`translateX(${direction*50}px)`,opacity:.65},{transform:'translateX(0)',opacity:1}],{duration:280,easing:'ease-out'}).finished;
+   // Cover, mobile and distant page jumps switch directly: no slide or fade.
   }
  }catch(err){console.error(err);status.textContent='Could not display this page. Use PDF ↓ to open the original.';}
  finally{busy=false;if(refit){refit=false;resize()}else if(queued){const q=queued;queued=null;show(q.target,q.animate)}}
@@ -80,7 +80,7 @@ viewer.addEventListener('touchend',e=>{if(!touch)return;const dx=e.changedTouche
 (async()=>{
  try{
   const lib=await import('./vendor/pdf.min.mjs');lib.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdf.worker.min.mjs',location.href).href;
-  const task=lib.getDocument({url:'portfolio.pdf',isEvalSupported:false});
+  const task=lib.getDocument({url:'portfolio.pdf?v=book-only-20261020',isEvalSupported:false});
   task.onProgress=p=>{if(!pdf)status.textContent=p.total?'Loading PDF '+Math.min(100,Math.round(p.loaded/p.total*100))+'%':'Loading PDF…'};
   pdf=await task.promise;const first=await pdf.getPage(1),vp=first.getViewport({scale:1});pageRatio=vp.width/vp.height;await show(0,false);
  }catch(err){console.error(err);status.textContent='Viewer could not load. Open the original with PDF ↓.';const a=document.createElement('a');a.href='portfolio.pdf';a.textContent='Open original PDF';a.style.color='white';spread.replaceChildren(a)}
