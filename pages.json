@@ -1,0 +1,291 @@
+{
+  "pages": [
+    {
+      "page": 1,
+      "file": "pages/page-01.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 2,
+      "file": "pages/page-02.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 3,
+      "file": "pages/page-03.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 4,
+      "file": "pages/page-04.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 5,
+      "file": "pages/page-05.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 6,
+      "file": "pages/page-06.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 7,
+      "file": "pages/page-07.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 8,
+      "file": "pages/page-08.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 9,
+      "file": "pages/page-09.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 10,
+      "file": "pages/page-10.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 11,
+      "file": "pages/page-11.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 12,
+      "file": "pages/page-12.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 13,
+      "file": "pages/page-13.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 14,
+      "file": "pages/page-14.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 15,
+      "file": "pages/page-15.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 16,
+      "file": "pages/page-16.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 17,
+      "file": "pages/page-17.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 18,
+      "file": "pages/page-18.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 19,
+      "file": "pages/page-19.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 20,
+      "file": "pages/page-20.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 21,
+      "file": "pages/page-21.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 22,
+      "file": "pages/page-22.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 23,
+      "file": "pages/page-23.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 24,
+      "file": "pages/page-24.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 25,
+      "file": "pages/page-25.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 26,
+      "file": "pages/page-26.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 27,
+      "file": "pages/page-27.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 28,
+      "file": "pages/page-28.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 29,
+      "file": "pages/page-29.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 30,
+      "file": "pages/page-30.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 31,
+      "file": "pages/page-31.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 32,
+      "file": "pages/page-32.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 33,
+      "file": "pages/page-33.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 34,
+      "file": "pages/page-34.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 35,
+      "file": "pages/page-35.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 36,
+      "file": "pages/page-36.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 37,
+      "file": "pages/page-37.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 38,
+      "file": "pages/page-38.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 39,
+      "file": "pages/page-39.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 40,
+      "file": "pages/page-40.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 41,
+      "file": "pages/page-41.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 42,
+      "file": "pages/page-42.webp",
+      "width": 1489,
+      "height": 2105
+    },
+    {
+      "page": 43,
+      "file": "pages/page-43.webp",
+      "width": 1489,
+      "height": 2105
+    }
+  ],
+  "links": [
+    {
+      "page": 3,
+      "x": 0.30591524537778214,
+      "y": 0.777407966606943,
+      "w": 0.3019053518086021,
+      "h": 0.019389748495054853,
+      "type": "page",
+      "target": 4
+    },
+    {
+      "page": 42,
+      "x": 0.19614095485677127,
+      "y": 0.13369322680799672,
+      "w": 0.18437329603746622,
+      "h": 0.021024138425519333,
+      "type": "url",
+      "href": "https://vimeo.com/1233441581?share=copy&fl=sv&fe=ci"
+    },
+    {
+      "page": 42,
+      "x": 0.15599990392701651,
+      "y": 0.15507369181745118,
+      "w": 0.17157418556871,
+      "h": 0.021024138425519333,
+      "type": "url",
+      "href": "https://vimeo.com/1233441581?share=copy&fl=sv&fe=ci"
+    }
+  ]
+}

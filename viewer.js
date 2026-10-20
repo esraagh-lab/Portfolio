@@ -1,253 +1,171 @@
-import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+let data=null;
+let spreadIndex=0;
+let zoom=1;
+const spread=document.getElementById('spread');
+const prev=document.getElementById('prev');
+const next=document.getElementById('next');
+const status=document.getElementById('status');
+const zoomLabel=document.getElementById('zoomLabel');
+const zoomIn=document.getElementById('zoomIn');
+const zoomOut=document.getElementById('zoomOut');
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+const mobile=()=>window.innerWidth<=760;
+const maxIndex=()=> mobile() ? data.pages.length-1 : Math.ceil((data.pages.length-1)/2);
 
-const PDF_URL = './portfolio.pdf';
-
-const spreadWrap = document.getElementById('spread-wrap');
-const leftSlot = document.getElementById('left-slot');
-const rightSlot = document.getElementById('right-slot');
-const leftCanvas = document.getElementById('left-canvas');
-const rightCanvas = document.getElementById('right-canvas');
-const leftLinks = document.getElementById('left-links');
-const rightLinks = document.getElementById('right-links');
-
-const prevBtn = document.getElementById('prev');
-const nextBtn = document.getElementById('next');
-const zoomInBtn = document.getElementById('zoom-in');
-const zoomOutBtn = document.getElementById('zoom-out');
-const zoomLabel = document.getElementById('zoom-label');
-const status = document.getElementById('page-status');
-const stage = document.querySelector('.stage');
-const errorBox = document.getElementById('error-box');
-
-let pdfDoc = null;
-let spreadIndex = 0; // 0 = cover, 1 = pages 2-3, 2 = pages 4-5, ...
-let userZoom = 1;
-let renderId = 0;
-
-function isMobile() {
-  return window.innerWidth <= 760;
+function pageNumbers(){
+  if(mobile()) return [spreadIndex+1];
+  if(spreadIndex===0) return [1];
+  const a=spreadIndex*2;
+  return [a,a+1].filter(n=>n<=data.pages.length);
 }
 
-function spreadPages() {
-  if (isMobile()) {
-    return [Math.min(spreadIndex + 1, pdfDoc.numPages), null];
+function makePage(n, single=false){
+  const p=data.pages[n-1];
+  const wrap=document.createElement('div');
+  wrap.className='page'+(single?' single':'');
+  const img=document.createElement('img');
+  img.src=p.file;
+  img.alt=`Portfolio page ${n}`;
+  img.width=p.width;
+  img.height=p.height;
+  img.draggable=false;
+  wrap.appendChild(img);
+
+  for(const l of data.links.filter(x=>x.page===n)){
+    const a=document.createElement('a');
+    a.className='hotspot';
+    a.style.left=(l.x*100)+'%'; a.style.top=(l.y*100)+'%';
+    a.style.width=(l.w*100)+'%'; a.style.height=(l.h*100)+'%';
+    if(l.type==='url'){
+      a.href=l.href; a.target='_blank'; a.rel='noopener noreferrer';
+      a.title='Watch model film on Vimeo'; a.setAttribute('aria-label',a.title);
+    } else if(l.type==='page'){
+      a.href='#'; a.title=`Go to page ${l.target}`; a.setAttribute('aria-label',a.title);
+      a.addEventListener('click',e=>{e.preventDefault();goToPage(l.target)});
+    }
+    wrap.appendChild(a);
   }
-
-  if (spreadIndex === 0) return [1, null];
-
-  const left = spreadIndex * 2;
-  const right = left + 1;
-  return [left <= pdfDoc.numPages ? left : null,
-          right <= pdfDoc.numPages ? right : null];
+  return wrap;
 }
 
-function maxSpreadIndex() {
-  if (isMobile()) return pdfDoc ? pdfDoc.numPages - 1 : 0;
-  return pdfDoc ? Math.ceil((pdfDoc.numPages - 1) / 2) : 0;
+function render(){
+  if(!data) return;
+  spread.innerHTML='';
+  const nums=pageNumbers();
+  nums.forEach(n=>spread.appendChild(makePage(n,nums.length===1)));
+  spread.style.transform=`scale(${zoom})`;
+  spread.style.marginTop=zoom>1 ? `${(zoom-1)*120}px` : 'auto';
+  spread.style.marginBottom=zoom>1 ? `${(zoom-1)*120}px` : 'auto';
+
+  if(nums.length===2) status.textContent=`${nums[0]}–${nums[1]} / ${data.pages.length}`;
+  else status.textContent=`${nums[0]} / ${data.pages.length}`;
+  prev.disabled=spreadIndex<=0;
+  next.disabled=spreadIndex>=maxIndex();
+  zoomLabel.textContent=Math.round(zoom*100)+'%';
+  preloadAround(nums);
 }
 
-function availableWidth() {
-  return Math.max(300, window.innerWidth - (isMobile() ? 28 : 170));
+function preloadAround(nums){
+  const candidates=new Set();
+  nums.forEach(n=>{for(let k=n-2;k<=n+2;k++) if(k>=1&&k<=data.pages.length)candidates.add(k)});
+  candidates.forEach(n=>{const im=new Image();im.src=data.pages[n-1].file;});
 }
 
-function availableHeight() {
-  return Math.max(300, window.innerHeight - (isMobile() ? 105 : 135));
-}
+function animateSpread(direction=1){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-async function preparePage(pageNumber) {
-  if (!pageNumber) return null;
-  const page = await pdfDoc.getPage(pageNumber);
-  const unit = page.getViewport({ scale: 1 });
-  return { pageNumber, page, unit };
-}
+  const distance = 34;
+  const fromX = direction > 0 ? distance : -distance;
 
-function fitScale(items) {
-  const live = items.filter(Boolean);
-  if (!live.length) return 1;
-
-  if (isMobile()) {
-    const p = live[0].unit;
-    return Math.min(availableWidth() / p.width, availableHeight() / p.height);
-  }
-
-  const gap = live.length === 2 ? 10 : 0;
-  const totalWidth = live.reduce((sum, x) => sum + x.unit.width, 0) + gap;
-  const maxHeight = Math.max(...live.map(x => x.unit.height));
-
-  return Math.min(
-    availableWidth() / totalWidth,
-    availableHeight() / maxHeight
+  spread.getAnimations().forEach(a=>a.cancel());
+  const animation = spread.animate(
+    [
+      {
+        transform:`translateX(${fromX}px) scale(${zoom})`,
+        opacity:0.84
+      },
+      {
+        transform:`translateX(0) scale(${zoom})`,
+        opacity:1
+      }
+    ],
+    {
+      duration:180,
+      easing:'cubic-bezier(.22,.61,.36,1)',
+      fill:'none'
+    }
   );
+
+  animation.finished
+    .then(()=>animation.cancel())
+    .catch(()=>{});
 }
 
-async function renderInto(item, canvas, slot, links, scale) {
-  if (!item) {
-    slot.classList.add('hidden');
-    canvas.width = 1;
-    canvas.height = 1;
-    links.innerHTML = '';
-    return;
-  }
+function change(delta){
+  if(!data) return;
+  const n=Math.max(0,Math.min(maxIndex(),spreadIndex+delta));
+  if(n===spreadIndex) return;
 
-  slot.classList.remove('hidden');
+  spreadIndex=n;
+  
 
-  const viewport = item.page.getViewport({ scale });
-  const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+render();
 
-  canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
-  canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
-  canvas.style.width = `${viewport.width}px`;
-  canvas.style.height = `${viewport.height}px`;
+  requestAnimationFrame(()=>animateSpread(delta));
+}
 
-  slot.style.width = `${viewport.width}px`;
-  slot.style.height = `${viewport.height}px`;
-  links.style.width = `${viewport.width}px`;
-  links.style.height = `${viewport.height}px`;
+function goToPage(page){
+  const oldIndex=spreadIndex;
+  const newIndex=mobile()?page-1:(page===1?0:Math.floor(page/2));
 
-  const ctx = canvas.getContext('2d', { alpha: false });
-  ctx.save();
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.restore();
+  spreadIndex=Math.max(0,Math.min(maxIndex(),newIndex));
+  render();
 
-  const transform = outputScale !== 1
-    ? [outputScale, 0, 0, outputScale, 0, 0]
-    : null;
-
-  await item.page.render({
-    canvasContext: ctx,
-    transform,
-    viewport,
-    background: '#ffffff'
-  }).promise;
-
-  links.innerHTML = '';
-  const annotations = await item.page.getAnnotations({ intent: 'display' });
-
-  for (const ann of annotations) {
-    if (ann.subtype !== 'Link' || !ann.rect) continue;
-    const href = ann.url || ann.unsafeUrl;
-    if (!href) continue;
-
-    const rect = viewport.convertToViewportRectangle(ann.rect);
-    const left = Math.min(rect[0], rect[2]);
-    const top = Math.min(rect[1], rect[3]);
-    const width = Math.abs(rect[2] - rect[0]);
-    const height = Math.abs(rect[3] - rect[1]);
-
-    const a = document.createElement('a');
-    a.href = href;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.style.left = `${left}px`;
-    a.style.top = `${top}px`;
-    a.style.width = `${width}px`;
-    a.style.height = `${height}px`;
-    a.setAttribute('aria-label', 'Open link');
-    links.appendChild(a);
+  const direction=spreadIndex>=oldIndex ? 1 : -1;
+  requestAnimationFrame(()=>animateSpread(direction));
+}
+prev.onclick=()=>change(-1); next.onclick=()=>change(1);
+zoomIn.onclick=()=>{zoom=Math.min(1.8,Math.round((zoom+.1)*10)/10);render()};
+zoomOut.onclick=()=>{zoom=Math.max(.7,Math.round((zoom-.1)*10)/10);render()};
+window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')change(-1);if(e.key==='ArrowRight')change(1)});
+let wasMobile=mobile();
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{
+  if(!data) return;
+  const first=wasMobile?spreadIndex+1:(spreadIndex===0?1:spreadIndex*2);
+  wasMobile=mobile();
+  spreadIndex=wasMobile?first-1:(first===1?0:Math.floor(first/2));
+  spreadIndex=Math.min(spreadIndex,maxIndex());render();
+},150)});
+async function toggleFullscreen(){
+  try{
+    if(!document.fullscreenElement){
+      await document.documentElement.requestFullscreen();
+    }else{
+      await document.exitFullscreen();
+    }
+  }catch(err){
+    status.textContent='Fullscreen is unavailable in this browser. Use its fullscreen menu.';
   }
 }
 
-async function renderSpread() {
-  if (!pdfDoc) return;
-
-  const myId = ++renderId;
-  errorBox.hidden = true;
-  spreadWrap.style.display = 'flex';
-
-  const [leftNum, rightNum] = spreadPages();
-  const [left, right] = await Promise.all([
-    preparePage(leftNum),
-    preparePage(rightNum)
-  ]);
-
-  if (myId !== renderId) return;
-
-  const scale = fitScale([left, right]) * userZoom;
-
-  await Promise.all([
-    renderInto(left, leftCanvas, leftSlot, leftLinks, scale),
-    renderInto(right, rightCanvas, rightSlot, rightLinks, scale)
-  ]);
-
-  if (myId !== renderId) return;
-
-  if (isMobile()) {
-    status.textContent = `${leftNum} / ${pdfDoc.numPages}`;
-  } else if (rightNum) {
-    status.textContent = `${leftNum}–${rightNum} / ${pdfDoc.numPages}`;
-  } else {
-    status.textContent = `${leftNum} / ${pdfDoc.numPages}`;
-  }
-
-  prevBtn.disabled = spreadIndex <= 0;
-  nextBtn.disabled = spreadIndex >= maxSpreadIndex();
-  zoomLabel.textContent = `${Math.round(userZoom * 100)}%`;
-
-  requestAnimationFrame(() => {
-    stage.scrollLeft = Math.max(0, (spreadWrap.scrollWidth - stage.clientWidth) / 2);
-    stage.scrollTop = 0;
-  });
+function updateFullscreenButton(){
+  if(!fullscreenBtn) return;
+  const active = !!document.fullscreenElement;
+  fullscreenBtn.textContent = active ? '×' : '⛶';
+  fullscreenBtn.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+  fullscreenBtn.setAttribute('title', active ? 'Exit fullscreen' : 'Fullscreen');
 }
 
-function changeSpread(delta) {
-  const next = Math.max(0, Math.min(maxSpreadIndex(), spreadIndex + delta));
-  if (next === spreadIndex) return;
-  spreadIndex = next;
-  renderSpread();
-}
-
-prevBtn.addEventListener('click', () => changeSpread(-1));
-nextBtn.addEventListener('click', () => changeSpread(1));
-
-zoomInBtn.addEventListener('click', () => {
-  userZoom = Math.min(1.8, +(userZoom + 0.1).toFixed(1));
-  renderSpread();
+fullscreenBtn?.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', ()=>{
+  updateFullscreenButton();
+  // Re-fit the current spread after entering/exiting fullscreen.
+  setTimeout(()=>render(), 80);
 });
+updateFullscreenButton();
 
-zoomOutBtn.addEventListener('click', () => {
-  userZoom = Math.max(0.6, +(userZoom - 0.1).toFixed(1));
-  renderSpread();
-});
-
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft') changeSpread(-1);
-  if (e.key === 'ArrowRight') changeSpread(1);
-});
-
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    // Keep position sensible when switching desktop/mobile.
-    spreadIndex = Math.min(spreadIndex, maxSpreadIndex());
-    renderSpread();
-  }, 150);
-});
-
-async function start() {
-  try {
-    status.textContent = 'Loading portfolio…';
-
-    pdfDoc = await pdfjsLib.getDocument({
-      url: PDF_URL,
-      cMapPacked: true
-    }).promise;
-
-    await renderSpread();
-  } catch (err) {
-    console.error(err);
-    spreadWrap.style.display = 'none';
-    errorBox.hidden = false;
-    errorBox.innerHTML =
-      '<strong>The portfolio could not be loaded.</strong><br><br>' +
-      'Please refresh the page. If the problem remains, make sure ' +
-      '<code>portfolio.pdf</code> is in the same folder as <code>index.html</code>.';
-    status.textContent = 'Error';
-  }
-}
-
-start();
+fetch('pages.json',{cache:'no-store'})
+  .then(r=>{if(!r.ok)throw new Error('pages.json '+r.status);return r.json()})
+  .then(j=>{data=j;render()})
+  .catch(err=>{console.error(err);status.textContent='Viewer error';spread.innerHTML='<div style="padding:24px;background:white;color:#7a2020;line-height:1.5">The portfolio viewer could not load. Please make sure the <b>pages</b> folder and <b>pages.json</b> were uploaded.</div>'});
